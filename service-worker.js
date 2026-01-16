@@ -1,6 +1,6 @@
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open("controle-gastos-v1").then(cache => {
+    caches.open("controle-gastos-v2").then(cache => {
       return cache.addAll([
         "index.html",
         "historico.html"
@@ -16,3 +16,4 @@ self.addEventListener("fetch", event => {
     })
   );
 });
+
