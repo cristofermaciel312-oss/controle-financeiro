@@ -44,6 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
           <button class="danger-btn btnExcluirMes" data-mes="${m}">
             🗑️ Excluir mês
           </button>
+          <button class="link-btn btnEditarMes" data-mes="${m}">
+            ✏️ Editar mês
+          </button>
 
           <div class="summary">
             <div><strong>Entradas</strong><br>${brl(totalR)}</div>
@@ -103,6 +106,22 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarHistorico();
   });
 
+  
+  // Editar mês
+lista.addEventListener('click', e => {
+  const btn = e.target.closest('.btnEditarMes');
+  if (!btn) return;
+
+  const mes = btn.dataset.mes;
+
+  // salva qual mês será editado
+  localStorage.setItem('editingMonth', mes);
+
+  // vai para a tela principal
+  window.location.href = 'index.html';
+});
+
+  
   // Limpar tudo
   document.getElementById('btnLimparTudo').addEventListener('click', () => {
     if (!confirm('Isso apagará TODO o histórico. Deseja continuar?')) return;
