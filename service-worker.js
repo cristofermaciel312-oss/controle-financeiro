@@ -1,4 +1,4 @@
-const CACHE_NAME = 'controle-financeiro-v3';
+const CACHE_NAME = 'controle-financeiro-v4';
 const FILES_TO_CACHE = [
   '/',
   '/index.html',
@@ -43,3 +43,4 @@ self.addEventListener('fetch', event => {
       .catch(() => caches.match(event.request))
   );
 });
+
