@@ -1,6 +1,6 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const $ = id => document.getElementById(id);
-  const KEY = 'financeHistory';
+const hoje = new Date();
+document.getElementById('mesSelecionado').value =
+  `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
 
   let receitas = [];
   let despesas = [];
