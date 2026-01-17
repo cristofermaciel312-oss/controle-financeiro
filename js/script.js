@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     $('tbodyDespesas').innerHTML = despesas.map(d =>
       `<tr><td>${brl(d.valor)}</td><td>${d.categoria}</td><td>${d.descricao||'-'}</td><td>${d.data}</td></tr>`
     ).join('');
+    
     // -------- EDITAR MÊS --------
 const EDIT_KEY = 'mesParaEdicao';
 const editMes = localStorage.getItem(EDIT_KEY);
@@ -46,7 +47,7 @@ if (editMes) {
 
     renderTabelas();
   }
-
+}
   localStorage.removeItem(EDIT_KEY);
   }
 
