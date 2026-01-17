@@ -1,147 +1,158 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Controle Financeiro</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<title>Controle Financeiro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    :root {
-      --primary:#4CAF50;
-      --bg:#f5f5f5;
-      --card:#ffffff;
-      --text:#222;
-    }
-    body.dark {
-      --bg:#121212;
-      --card:#1e1e1e;
-      --text:#e0e0e0;
-    }
-    body {
-      margin:0;
-      font-family:system-ui, Arial;
-      background:var(--bg);
-      color:var(--text);
-    }
-    header {
-      background:var(--primary);
-      color:#fff;
-      padding:14px 20px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-    }
-    header button {
-      border:none;
-      background:#fff;
-      padding:6px 10px;
-      border-radius:8px;
-      font-weight:600;
-      cursor:pointer;
-    }
-    main {
-      max-width:900px;
-      margin:20px auto;
-      padding:0 14px;
-    }
-    .card {
-      background:var(--card);
-      border-radius:14px;
-      padding:16px;
-      margin-bottom:16px;
-    }
-    .row {
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    input, select, button {
-      padding:8px;
-      border-radius:8px;
-      border:1px solid #ccc;
-    }
-    button.primary {
-      background:var(--primary);
-      color:#fff;
-      border:none;
-      font-weight:600;
-    }
-    table {
-      width:100%;
-      border-collapse:collapse;
-      margin-top:10px;
-    }
-    th, td {
-      border:1px solid #ddd;
-      padding:6px;
-      text-align:center;
-    }
-    th {
-      background:var(--primary);
-      color:#fff;
-    }
-  </style>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+:root{
+  --primary:#4CAF50;
+  --bg:#f5f5f5;
+  --card:#fff;
+  --text:#222;
+}
+body.dark{
+  --bg:#121212;
+  --card:#1e1e1e;
+  --text:#e0e0e0;
+}
+body{
+  margin:0;
+  font-family:system-ui,Arial;
+  background:var(--bg);
+  color:var(--text);
+}
+header{
+  background:var(--primary);
+  color:#fff;
+  padding:14px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+header button{
+  border:none;
+  background:#fff;
+  padding:6px 10px;
+  border-radius:8px;
+  font-weight:600;
+  cursor:pointer;
+}
+main{
+  max-width:900px;
+  margin:20px auto;
+  padding:0 14px;
+}
+.card{
+  background:var(--card);
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:16px;
+}
+.row{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+input,select,button{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+button.primary{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+}
+th,td{
+  border:1px solid #ddd;
+  padding:6px;
+  text-align:center;
+}
+th{
+  background:var(--primary);
+  color:#fff;
+}
+canvas{
+  max-width:100%;
+}
+</style>
 </head>
 
 <body>
 <header>
-  <strong>Controle Financeiro</strong>
-  <div>
-    <button id="btnHistorico">📚 Histórico</button>
-    <button id="toggleTheme">🌙 Tema</button>
-  </div>
+<strong>Controle Financeiro</strong>
+<div>
+<button id="btnHistorico">📚 Histórico</button>
+<button id="toggleTheme">🌙 Tema</button>
+</div>
 </header>
 
 <main>
 
-  <div class="card row">
-    <label>Mês:
-      <input type="month" id="mesSelecionado">
-    </label>
-    <label>Dinheiro guardado:
-      <input type="number" id="dinheiroGuardado">
-    </label>
-  </div>
+<div class="card row">
+<label>Mês:
+<input type="month" id="mesSelecionado">
+</label>
+<label>Dinheiro guardado:
+<input type="number" id="dinheiroGuardado">
+</label>
+</div>
 
-  <div class="card">
-    <h2>Entradas</h2>
-    <div class="row">
-      <input id="valorReceita" type="number" placeholder="Valor">
-      <input id="fonteReceita" placeholder="Fonte">
-      <input id="dataReceita" type="date">
-      <button id="btnAddReceita" class="primary">Adicionar</button>
-    </div>
-    <table>
-      <thead>
-        <tr><th>Valor</th><th>Fonte</th><th>Data</th><th></th></tr>
-      </thead>
-      <tbody id="tbodyReceitas"></tbody>
-    </table>
-  </div>
+<div class="card">
+<h2>Entradas</h2>
+<div class="row">
+<input id="valorReceita" type="number" placeholder="Valor">
+<input id="fonteReceita" placeholder="Fonte">
+<input id="dataReceita" type="date">
+<button id="btnAddReceita" class="primary">Adicionar</button>
+</div>
+<table>
+<thead><tr><th>Valor</th><th>Fonte</th><th>Data</th></tr></thead>
+<tbody id="tbodyReceitas"></tbody>
+</table>
+</div>
 
-  <div class="card">
-    <h2>Despesas</h2>
-    <div class="row">
-      <input id="valorDespesa" type="number" placeholder="Valor">
-      <input id="categoriaDespesa" placeholder="Categoria">
-      <input id="descricaoDespesa" placeholder="Descrição">
-      <input id="dataDespesa" type="date">
-      <button id="btnAddDespesa" class="primary">Adicionar</button>
-    </div>
-    <table>
-      <thead>
-        <tr><th>Valor</th><th>Categoria</th><th>Descrição</th><th>Data</th><th></th></tr>
-      </thead>
-      <tbody id="tbodyDespesas"></tbody>
-    </table>
-  </div>
+<div class="card">
+<h2>Despesas</h2>
+<div class="row">
+<input id="valorDespesa" type="number" placeholder="Valor">
+<input id="categoriaDespesa" placeholder="Categoria">
+<input id="descricaoDespesa" placeholder="Descrição">
+<input id="dataDespesa" type="date">
+<button id="btnAddDespesa" class="primary">Adicionar</button>
+</div>
+<table>
+<thead><tr><th>Valor</th><th>Categoria</th><th>Descrição</th><th>Data</th></tr></thead>
+<tbody id="tbodyDespesas"></tbody>
+</table>
+</div>
 
-  <div class="card row">
-    <button id="btnSalvarMes" class="primary">💾 Salvar mês</button>
-    <button id="btnLimparAtual">🧹 Limpar</button>
-  </div>
+<div class="card">
+<h2>Visualização</h2>
+<select id="tipoGrafico">
+<option value="nenhum">Tabela</option>
+<option value="resumo">📊 Resumo mensal</option>
+<option value="pizza">🍕 Despesas por categoria</option>
+<option value="linha">📈 Evolução do saldo</option>
+</select>
+
+<canvas id="grafico"></canvas>
+</div>
+
+<div class="card row">
+<button id="btnSalvarMes" class="primary">💾 Salvar mês</button>
+<button id="btnLimpar">🧹 Limpar</button>
+</div>
 
 </main>
 
