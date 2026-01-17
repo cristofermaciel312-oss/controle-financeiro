@@ -1,60 +1,77 @@
-document.addEventListener('DOMContentLoaded',()=>{
-  const KEY='financeHistory';
-  const lista=document.getElementById('lista');
-  const vazio=document.getElementById('vazio');
+document.addEventListener('DOMContentLoaded', () => {
+  const lista = document.getElementById('lista');
+  const vazio = document.getElementById('vazio');
 
-  if(localStorage.getItem('theme')==='dark')
-    document.body.classList.add('dark');
+  const HISTORY_KEY = 'financeHistory';
+  const EDIT_KEY = 'mesParaEdicao';
 
-  document.getElementById('toggleTheme').onclick=()=>{
-    document.body.classList.toggle('dark');
-    localStorage.setItem('theme',
-      document.body.classList.contains('dark')?'dark':'light');
-  };
+  const brl = n =>
+    (n || 0).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
 
-  document.getElementById('btnVoltar').onclick=()=>location.href='index.html';
+  const dataPT = v =>
+    v ? new Date(v + 'T00:00:00').toLocaleDateString('pt-BR') : '';
 
-  document.getElementById('btnLimparTudo').onclick=()=>{
-    if(confirm('Apagar todo histórico?')){
-      localStorage.removeItem(KEY);
-      carregar();
-    }
-  };
+  function carregarHistorico() {
+    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
+    const meses = Object.keys(hist);
 
-  function carregar(){
-    const hist=JSON.parse(localStorage.getItem(KEY))||{};
-    const meses=Object.keys(hist);
-
-    if(meses.length===0){
-      lista.innerHTML='';
-      vazio.style.display='block';
+    if (meses.length === 0) {
+      lista.innerHTML = '';
+      vazio.style.display = 'block';
       return;
     }
 
-    vazio.style.display='none';
+    vazio.style.display = 'none';
 
-    lista.innerHTML=meses.map(m=>{
-      const d=hist[m];
-      const r=d.receitas.reduce((a,r)=>a+r.valor,0);
-      const s=d.despesas.reduce((a,d)=>a+d.valor,0);
+    lista.innerHTML = meses.map(m => {
+      const d = hist[m];
+      const totalR = (d.receitas || []).reduce((a, r) => a + r.valor, 0);
+      const totalD = (d.despesas || []).reduce((a, d) => a + d.valor, 0);
 
       return `
-      <div class="card">
-        <h3>${m}</h3>
-        <p>Entradas: R$ ${r}</p>
-        <p>Despesas: R$ ${s}</p>
-        <p>Guardado: R$ ${d.guardado}</p>
-        <button onclick="excluir('${m}')">🗑 Excluir</button>
-      </div>`;
+        <div class="card">
+          <h2>${m}</h2>
+
+          <button class="edit-btn" data-mes="${m}">✏️ Editar mês</button>
+          <button class="danger-btn btnExcluirMes" data-mes="${m}">
+            🗑️ Excluir mês
+          </button>
+
+          <div class="summary">
+            <div><strong>Entradas</strong><br>${brl(totalR)}</div>
+            <div><strong>Despesas</strong><br>${brl(totalD)}</div>
+            <div><strong>Saldo</strong><br>${brl(totalR - totalD)}</div>
+            <div><strong>Guardado</strong><br>${brl(d.guardado)}</div>
+          </div>
+        </div>
+      `;
     }).join('');
   }
 
-  window.excluir = mes => {
-    const hist=JSON.parse(localStorage.getItem(KEY));
-    delete hist[mes];
-    localStorage.setItem(KEY,JSON.stringify(hist));
-    carregar();
-  };
+  lista.addEventListener('click', e => {
+    // EDITAR
+    const edit = e.target.closest('.edit-btn');
+    if (edit) {
+      localStorage.setItem(EDIT_KEY, edit.dataset.mes);
+      window.location.href = 'index.html';
+      return;
+    }
 
-  carregar();
+    // EXCLUIR
+    const del = e.target.closest('.btnExcluirMes');
+    if (!del) return;
+
+    const mes = del.dataset.mes;
+    if (!confirm(`Excluir o mês "${mes}"?`)) return;
+
+    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
+    delete hist[mes];
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+    carregarHistorico();
+  });
+
+  carregarHistorico();
 });
