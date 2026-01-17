@@ -1,127 +1,86 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const tipoVisualizacao = document.getElementById('tipoVisualizacao');
+  const areaTabela = document.getElementById('areaTabela');
+  const areaGrafico = document.getElementById('areaGrafico');
+  const ctx = document.getElementById('grafico').getContext('2d');
+
+  let graficoAtual = null;
+
   const HISTORY_KEY = 'financeHistory';
-  const EDIT_KEY = 'editingMonth';
 
-  const el = {
-    mesSelecionado: document.getElementById('mesSelecionado'),
-    dinheiroGuardado: document.getElementById('dinheiroGuardado'),
-
-    valorReceita: document.getElementById('valorReceita'),
-    fonteReceita: document.getElementById('fonteReceita'),
-    dataReceita: document.getElementById('dataReceita'),
-    btnAddReceita: document.getElementById('btnAddReceita'),
-    tabelaReceitasBody: document.querySelector('#tabelaReceitas tbody'),
-
-    valorDespesa: document.getElementById('valorDespesa'),
-    categoriaDespesa: document.getElementById('categoriaDespesa'),
-    descricaoDespesa: document.getElementById('descricaoDespesa'),
-    dataDespesa: document.getElementById('dataDespesa'),
-    btnAddDespesa: document.getElementById('btnAddDespesa'),
-    tabelaDespesasBody: document.querySelector('#tabelaDespesas tbody'),
-
-    totalReceitas: document.getElementById('totalReceitas'),
-    totalDespesas: document.getElementById('totalDespesas'),
-    saldoRestante: document.getElementById('saldoRestante'),
-    saldoGuardado: document.getElementById('saldoGuardado'),
-
-    btnSalvarMes: document.getElementById('btnSalvarMes'),
-    btnLimparAtual: document.getElementById('btnLimparAtual'),
-  };
-
-  let receitas = [];
-  let despesas = [];
-  let nextId = 1;
-
-  const brl = n => (n || 0).toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  });
-
-  const monthKey = input => {
-    const [y, m] = input.split('-');
-    const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    return `${nomes[m - 1]} ${y}`;
-  };
-
-  function render() {
-    el.tabelaReceitasBody.innerHTML = receitas.map(r => `
-      <tr><td>${brl(r.valor)}</td><td>${r.fonte}</td><td>${r.data}</td></tr>
-    `).join('');
-
-    el.tabelaDespesasBody.innerHTML = despesas.map(d => `
-      <tr><td>${brl(d.valor)}</td><td>${d.categoria}</td><td>${d.descricao || '-'}</td><td>${d.data}</td></tr>
-    `).join('');
-
-    const totalR = receitas.reduce((a,r)=>a+r.valor,0);
-    const totalD = despesas.reduce((a,d)=>a+d.valor,0);
-    const guardado = Number(el.dinheiroGuardado.value) || 0;
-
-    el.totalReceitas.textContent = brl(totalR);
-    el.totalDespesas.textContent = brl(totalD);
-    el.saldoRestante.textContent = brl(totalR - totalD);
-    el.saldoGuardado.textContent = brl(guardado);
+  function getMesAtual() {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return null;
+    const hist = JSON.parse(raw);
+    const meses = Object.keys(hist);
+    return meses.length ? hist[meses[meses.length - 1]] : null;
   }
 
-  // Adicionar receita
-  el.btnAddReceita.onclick = () => {
-    receitas.push({
-      id: nextId++,
-      valor: Number(el.valorReceita.value),
-      fonte: el.fonteReceita.value,
-      data: el.dataReceita.value
+  function renderGraficoPizza(despesas) {
+    const categorias = {};
+    despesas.forEach(d => {
+      categorias[d.categoria] = (categorias[d.categoria] || 0) + d.valor;
     });
-    render();
-  };
 
-  // Adicionar despesa
-  el.btnAddDespesa.onclick = () => {
-    despesas.push({
-      id: nextId++,
-      valor: Number(el.valorDespesa.value),
-      categoria: el.categoriaDespesa.value,
-      descricao: el.descricaoDespesa.value,
-      data: el.dataDespesa.value
+    return new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: Object.keys(categorias),
+        datasets: [{
+          data: Object.values(categorias)
+        }]
+      }
     });
-    render();
-  };
+  }
 
-  // SALVAR / ATUALIZAR MÊS
-  el.btnSalvarMes.onclick = () => {
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
-    const key = localStorage.getItem(EDIT_KEY) || monthKey(el.mesSelecionado.value);
+  function renderGraficoBarras(receitas, despesas) {
+    const totalR = receitas.reduce((a, r) => a + r.valor, 0);
+    const totalD = despesas.reduce((a, d) => a + d.valor, 0);
 
-    hist[key] = {
-      receitas,
-      despesas,
-      guardado: Number(el.dinheiroGuardado.value) || 0,
-      salvoEm: new Date().toISOString()
-    };
+    return new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Entradas', 'Despesas'],
+        datasets: [{
+          data: [totalR, totalD]
+        }]
+      }
+    });
+  }
 
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
-    localStorage.removeItem(EDIT_KEY);
-    window.location.href = 'historico.html';
-  };
+  function atualizarVisualizacao() {
+    const mes = getMesAtual();
+    if (!mes) return;
 
-  // LIMPAR MÊS ATUAL
-  el.btnLimparAtual.onclick = () => {
-    receitas = [];
-    despesas = [];
-    el.dinheiroGuardado.value = '';
-    render();
-  };
+    if (graficoAtual) {
+      graficoAtual.destroy();
+      graficoAtual = null;
+    }
 
-  // 🔥 CARREGAR MÊS PARA EDIÇÃO
-  const editing = localStorage.getItem(EDIT_KEY);
-  if (editing) {
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
-    const d = hist[editing];
-    if (d) {
-      receitas = d.receitas || [];
-      despesas = d.despesas || [];
-      el.dinheiroGuardado.value = d.guardado || 0;
-      render();
+    const tipo = tipoVisualizacao.value;
+
+    if (tipo === 'tabela') {
+      areaTabela.style.display = 'block';
+      areaGrafico.style.display = 'none';
+      return;
+    }
+
+    areaTabela.style.display = 'none';
+    areaGrafico.style.display = 'block';
+
+    if (tipo === 'pizza') {
+      graficoAtual = renderGraficoPizza(mes.despesas || []);
+    }
+
+    if (tipo === 'barras') {
+      graficoAtual = renderGraficoBarras(
+        mes.receitas || [],
+        mes.despesas || []
+      );
     }
   }
 
-  render();
+  tipoVisualizacao.addEventListener('change', atualizarVisualizacao);
+
+  atualizarVisualizacao();
 });
