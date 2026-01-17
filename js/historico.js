@@ -11,9 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
       currency: 'BRL',
     });
 
-  const dataPT = v =>
-    v ? new Date(v + 'T00:00:00').toLocaleDateString('pt-BR') : '';
-
   function carregarHistorico() {
     const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
     const meses = Object.keys(hist);
@@ -35,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="card">
           <h2>${m}</h2>
 
-          <button class="edit-btn" data-mes="${m}">✏️ Editar mês</button>
-          <button class="danger-btn btnExcluirMes" data-mes="${m}">
-            🗑️ Excluir mês
-          </button>
+          <div style="display:flex; gap:8px; margin-bottom:10px">
+            <button class="edit-btn" data-mes="${m}">✏️ Editar mês</button>
+            <button class="danger-btn btnExcluirMes" data-mes="${m}">🗑️ Excluir</button>
+          </div>
 
           <div class="summary">
             <div><strong>Entradas</strong><br>${brl(totalR)}</div>
@@ -51,27 +48,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
+  // AÇÕES
   lista.addEventListener('click', e => {
-    // EDITAR
     const edit = e.target.closest('.edit-btn');
     if (edit) {
       localStorage.setItem(EDIT_KEY, edit.dataset.mes);
-      window.location.href = 'index.html';
+      location.href = 'index.html';
       return;
     }
 
-    // EXCLUIR
     const del = e.target.closest('.btnExcluirMes');
     if (!del) return;
 
     const mes = del.dataset.mes;
-    if (!confirm(`Excluir o mês "${mes}"?`)) return;
+    if (!confirm(`Excluir "${mes}"?`)) return;
 
     const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
     delete hist[mes];
     localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
     carregarHistorico();
   });
+
+  // BOTÕES SUPERIORES
+  document.getElementById('btnVoltar').onclick = () => location.href = 'index.html';
+
+  document.getElementById('btnLimparTudo').onclick = () => {
+    if (!confirm('Apagar TODO o histórico?')) return;
+    localStorage.removeItem(HISTORY_KEY);
+    carregarHistorico();
+  };
+
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') document.body.classList.add('dark');
+
+  document.getElementById('toggleTheme').onclick = () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem(
+      'theme',
+      document.body.classList.contains('dark') ? 'dark' : 'light'
+    );
+  };
 
   carregarHistorico();
 });
