@@ -6,18 +6,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <style>
+    * { box-sizing: border-box; }
+
     :root {
-      --primary:#4CAF50;
-      --bg:#f5f5f5;
-      --card:#ffffff;
+      --bg:#f9f9f9;
       --text:#222;
-      --danger:#e53935;
+      --muted:#666;
+      --primary:#4CAF50;
+      --card:#ffffff;
+      --border:#e5e5e5;
     }
 
     body.dark {
       --bg:#121212;
-      --card:#1e1e1e;
       --text:#e0e0e0;
+      --muted:#aaa;
+      --primary:#81C784;
+      --card:#1e1e1e;
+      --border:#2a2a2a;
     }
 
     body {
@@ -28,86 +34,92 @@
     }
 
     header {
-      background:var(--primary);
-      color:#fff;
-      padding:14px 20px;
       display:flex;
       justify-content:space-between;
       align-items:center;
+      padding:14px 20px;
+      background:var(--primary);
+      color:#fff;
     }
 
-    header button {
-      border:none;
-      background:#fff;
-      color:#333;
+    header button, select {
       padding:6px 10px;
       border-radius:8px;
+      border:none;
       font-weight:600;
       cursor:pointer;
-      margin-left:6px;
     }
 
-    main {
-      max-width:900px;
+    .container {
+      max-width:1100px;
       margin:20px auto;
       padding:0 14px;
     }
 
     .card {
       background:var(--card);
+      border:1px solid var(--border);
       border-radius:14px;
       padding:16px;
       margin-bottom:16px;
     }
 
-    .summary {
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-      gap:10px;
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-top:10px;
     }
 
-    .danger {
-      background:var(--danger);
-      color:#fff;
-      border:none;
-      padding:8px 12px;
-      border-radius:8px;
-      cursor:pointer;
+    th, td {
+      border:1px solid var(--border);
+      padding:8px;
+      text-align:center;
     }
 
-    .edit {
+    th {
       background:var(--primary);
       color:#fff;
-      border:none;
-      padding:8px 12px;
-      border-radius:8px;
-      cursor:pointer;
     }
 
-    #vazio {
-      text-align:center;
-      opacity:.6;
-      margin-top:40px;
+    .hidden {
+      display:none;
     }
   </style>
 </head>
 
 <body>
+
 <header>
-  <strong>Histórico Financeiro</strong>
+  <strong>📚 Histórico Financeiro</strong>
   <div>
     <button id="btnVoltar">⬅ Voltar</button>
-    <button id="btnTema">🌙 Tema</button>
-    <button id="btnLimparTudo">🧹 Limpar tudo</button>
+    <button id="toggleTheme">🌙 Tema</button>
+    <button id="btnLimparTudo">🧹 Limpar</button>
   </div>
 </header>
 
-<main>
-  <div id="lista"></div>
-  <div id="vazio" style="display:none">
-    Nenhum mês salvo ainda.
+<div class="container">
+
+  <div class="card">
+    <label>Visualização:
+      <select id="modoVisualizacao">
+        <option value="cards">Cards</option>
+        <option value="tabela-mes">Tabela por mês</option>
+        <option value="tabela-geral">Tabela geral</option>
+      </select>
+    </label>
   </div>
-</main>
+
+  <!-- CARDS (EXISTENTE) -->
+  <div id="lista"></div>
+
+  <!-- TABELA POR MÊS -->
+  <div id="tabelaMes" class="card hidden"></div>
+
+  <!-- TABELA GERAL -->
+  <div id="tabelaGeral" class="card hidden"></div>
+
+</div>
 
 <script src="js/historico.js"></script>
 </body>
