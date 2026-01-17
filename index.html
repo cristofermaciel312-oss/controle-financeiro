@@ -18,14 +18,12 @@
       --card:#1e1e1e;
       --text:#e0e0e0;
     }
-
     body {
       margin:0;
       font-family:system-ui, Arial;
       background:var(--bg);
       color:var(--text);
     }
-
     header {
       background:var(--primary);
       color:#fff;
@@ -34,71 +32,55 @@
       justify-content:space-between;
       align-items:center;
     }
-
     header button {
       border:none;
       background:#fff;
-      color:#333;
       padding:6px 10px;
       border-radius:8px;
       font-weight:600;
       cursor:pointer;
     }
-
     main {
       max-width:900px;
       margin:20px auto;
       padding:0 14px;
     }
-
     .card {
       background:var(--card);
       border-radius:14px;
       padding:16px;
       margin-bottom:16px;
     }
-
-    h2 { margin-top:0 }
-
     .row {
       display:flex;
       gap:10px;
       flex-wrap:wrap;
+      align-items:center;
     }
-
     input, select, button {
       padding:8px;
       border-radius:8px;
       border:1px solid #ccc;
     }
-
     button.primary {
       background:var(--primary);
       color:#fff;
       border:none;
       font-weight:600;
     }
-
     table {
       width:100%;
       border-collapse:collapse;
       margin-top:10px;
     }
-
     th, td {
       border:1px solid #ddd;
       padding:6px;
       text-align:center;
     }
-
     th {
       background:var(--primary);
       color:#fff;
-    }
-
-    canvas {
-      max-width:100%;
-      margin-top:20px;
     }
   </style>
 </head>
@@ -132,7 +114,9 @@
       <button id="btnAddReceita" class="primary">Adicionar</button>
     </div>
     <table>
-      <thead><tr><th>Valor</th><th>Fonte</th><th>Data</th></tr></thead>
+      <thead>
+        <tr><th>Valor</th><th>Fonte</th><th>Data</th><th></th></tr>
+      </thead>
       <tbody id="tbodyReceitas"></tbody>
     </table>
   </div>
@@ -147,31 +131,20 @@
       <button id="btnAddDespesa" class="primary">Adicionar</button>
     </div>
     <table>
-      <thead><tr><th>Valor</th><th>Categoria</th><th>Descrição</th><th>Data</th></tr></thead>
+      <thead>
+        <tr><th>Valor</th><th>Categoria</th><th>Descrição</th><th>Data</th><th></th></tr>
+      </thead>
       <tbody id="tbodyDespesas"></tbody>
     </table>
   </div>
 
-  <div class="card">
-    <h2>Visualização</h2>
-    <select id="tipoGrafico">
-      <option value="nenhum">Tabela</option>
-      <option value="pizza">Pizza (Despesas)</option>
-      <option value="barra">Barras (Resumo)</option>
-    </select>
-
-    <canvas id="grafico"></canvas>
-  </div>
-
   <div class="card row">
     <button id="btnSalvarMes" class="primary">💾 Salvar mês</button>
-    <button id="btnLimpar">🧹 Limpar</button>
+    <button id="btnLimparAtual">🧹 Limpar</button>
   </div>
 
 </main>
 
 <script src="js/script.js"></script>
-
 </body>
 </html>
-
