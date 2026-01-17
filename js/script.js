@@ -1,135 +1,128 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const HISTORY_KEY = 'financeHistory';
-  const EDIT_KEY = 'mesParaEdicao';
+document.addEventListener('DOMContentLoaded',()=>{
 
-  const el = id => document.getElementById(id);
+const $ = id => document.getElementById(id);
+const HISTORY_KEY = 'financeHistory';
 
-  const mesSelecionado = el('mesSelecionado');
-  const dinheiroGuardado = el('dinheiroGuardado');
+let receitas = [];
+let despesas = [];
+let chart = null;
 
-  const valorReceita = el('valorReceita');
-  const fonteReceita = el('fonteReceita');
-  const dataReceita = el('dataReceita');
-  const btnAddReceita = el('btnAddReceita');
+// ===== THEME =====
+if(localStorage.getItem('theme')==='dark') document.body.classList.add('dark');
+$('toggleTheme').onclick=()=>{
+  document.body.classList.toggle('dark');
+  localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');
+};
 
-  const valorDespesa = el('valorDespesa');
-  const categoriaDespesa = el('categoriaDespesa');
-  const descricaoDespesa = el('descricaoDespesa');
-  const dataDespesa = el('dataDespesa');
-  const btnAddDespesa = el('btnAddDespesa');
+// ===== DATA =====
+const today = new Date();
+$('mesSelecionado').value =
+`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
 
-  const tbodyReceitas = el('tbodyReceitas');
-  const tbodyDespesas = el('tbodyDespesas');
+// ===== HELPERS =====
+const brl = n => (n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 
-  const btnSalvarMes = el('btnSalvarMes');
-  const btnLimparAtual = el('btnLimparAtual');
-  const btnHistorico = el('btnHistorico');
-  const toggleTheme = el('toggleTheme');
+// ===== RENDER =====
+function render(){
+  $('tbodyReceitas').innerHTML = receitas.map(r=>`
+  <tr><td>${brl(r.valor)}</td><td>${r.fonte}</td><td>${r.data}</td></tr>`).join('');
 
-  let receitas = [];
-  let despesas = [];
+  $('tbodyDespesas').innerHTML = despesas.map(d=>`
+  <tr><td>${brl(d.valor)}</td><td>${d.categoria}</td><td>${d.descricao||'-'}</td><td>${d.data}</td></tr>`).join('');
 
-  const brl = n => (n || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  const dataPT = d => new Date(d+'T00:00:00').toLocaleDateString('pt-BR');
+  renderGrafico();
+}
 
-  function render() {
-    tbodyReceitas.innerHTML = receitas.map((r,i)=>`
-      <tr>
-        <td>${brl(r.valor)}</td>
-        <td>${r.fonte}</td>
-        <td>${dataPT(r.data)}</td>
-        <td><button data-i="${i}" class="remR">🗑️</button></td>
-      </tr>
-    `).join('');
+// ===== ADD =====
+$('btnAddReceita').onclick=()=>{
+  receitas.push({
+    valor:+$('valorReceita').value,
+    fonte:$('fonteReceita').value,
+    data:$('dataReceita').value
+  });
+  render();
+};
 
-    tbodyDespesas.innerHTML = despesas.map((d,i)=>`
-      <tr>
-        <td>${brl(d.valor)}</td>
-        <td>${d.categoria}</td>
-        <td>${d.descricao || '-'}</td>
-        <td>${dataPT(d.data)}</td>
-        <td><button data-i="${i}" class="remD">🗑️</button></td>
-      </tr>
-    `).join('');
-  }
+$('btnAddDespesa').onclick=()=>{
+  despesas.push({
+    valor:+$('valorDespesa').value,
+    categoria:$('categoriaDespesa').value,
+    descricao:$('descricaoDespesa').value,
+    data:$('dataDespesa').value
+  });
+  render();
+};
 
-  btnAddReceita.onclick = () => {
-    if(!valorReceita.value || !fonteReceita.value || !dataReceita.value) return;
-    receitas.push({valor:+valorReceita.value,fonte:fonteReceita.value,data:dataReceita.value});
-    valorReceita.value = fonteReceita.value = dataReceita.value = '';
-    render();
+// ===== SAVE =====
+$('btnSalvarMes').onclick=()=>{
+  const mes = $('mesSelecionado').value;
+  const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)||'{}');
+
+  hist[mes]={
+    receitas:[...(hist[mes]?.receitas||[]),...receitas],
+    despesas:[...(hist[mes]?.despesas||[]),...despesas],
+    guardado:+$('dinheiroGuardado').value||0,
+    salvoEm:new Date().toISOString()
   };
 
-  btnAddDespesa.onclick = () => {
-    if(!valorDespesa.value || !categoriaDespesa.value || !dataDespesa.value) return;
-    despesas.push({
-      valor:+valorDespesa.value,
-      categoria:categoriaDespesa.value,
-      descricao:descricaoDespesa.value,
-      data:dataDespesa.value
+  localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));
+  receitas=[]; despesas=[];
+  render();
+};
+
+// ===== GRAPH =====
+$('tipoGrafico').onchange=renderGrafico;
+
+function renderGrafico(){
+  const tipo = $('tipoGrafico').value;
+  const ctx = $('grafico');
+  if(chart) chart.destroy();
+  if(tipo==='nenhum') return;
+
+  const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)||'{}');
+  const meses = Object.keys(hist);
+
+  if(tipo==='resumo'){
+    chart=new Chart(ctx,{
+      type:'bar',
+      data:{
+        labels:meses,
+        datasets:[
+          {label:'Entradas',data:meses.map(m=>hist[m].receitas.reduce((a,r)=>a+r.valor,0))},
+          {label:'Despesas',data:meses.map(m=>hist[m].despesas.reduce((a,d)=>a+d.valor,0))},
+        ]
+      }
     });
-    valorDespesa.value = categoriaDespesa.value = descricaoDespesa.value = dataDespesa.value = '';
-    render();
-  };
-
-  tbodyReceitas.onclick = e => {
-    if(e.target.classList.contains('remR')){
-      receitas.splice(e.target.dataset.i,1);
-      render();
-    }
-  };
-
-  tbodyDespesas.onclick = e => {
-    if(e.target.classList.contains('remD')){
-      despesas.splice(e.target.dataset.i,1);
-      render();
-    }
-  };
-
-  btnSalvarMes.onclick = () => {
-    if(!mesSelecionado.value) return alert('Selecione um mês');
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
-    hist[mesSelecionado.value] = {
-      receitas,
-      despesas,
-      guardado:+dinheiroGuardado.value || 0,
-      salvoEm:new Date().toISOString()
-    };
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
-    location.href='historico.html';
-  };
-
-  btnLimparAtual.onclick = () => {
-    if(!confirm('Limpar mês atual?')) return;
-    receitas = [];
-    despesas = [];
-    dinheiroGuardado.value = '';
-    render();
-  };
-
-  btnHistorico.onclick = () => location.href='historico.html';
-
-  const theme = localStorage.getItem('theme');
-  if(theme==='dark') document.body.classList.add('dark');
-  toggleTheme.onclick = () => {
-    document.body.classList.toggle('dark');
-    localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');
-  };
-
-  const editMes = localStorage.getItem(EDIT_KEY);
-  if(editMes){
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY))||{};
-    const d = hist[editMes];
-    if(d){
-      mesSelecionado.value = editMes;
-      dinheiroGuardado.value = d.guardado || 0;
-      receitas = d.receitas || [];
-      despesas = d.despesas || [];
-      render();
-    }
-    localStorage.removeItem(EDIT_KEY);
-  } else {
-    const hoje = new Date();
-    mesSelecionado.value = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
   }
+
+  if(tipo==='pizza'){
+    const categorias={};
+    despesas.forEach(d=>categorias[d.categoria]=(categorias[d.categoria]||0)+d.valor);
+    chart=new Chart(ctx,{
+      type:'pie',
+      data:{labels:Object.keys(categorias),datasets:[{data:Object.values(categorias)}]}
+    });
+  }
+
+  if(tipo==='linha'){
+    chart=new Chart(ctx,{
+      type:'line',
+      data:{
+        labels:meses,
+        datasets:[{
+          label:'Saldo',
+          data:meses.map(m=>
+            hist[m].receitas.reduce((a,r)=>a+r.valor,0)-
+            hist[m].despesas.reduce((a,d)=>a+d.valor,0)
+          )
+        }]
+      }
+    });
+  }
+}
+
+// ===== NAV =====
+$('btnHistorico').onclick=()=>location.href='historico.html';
+$('btnLimpar').onclick=()=>{receitas=[];despesas=[];render();};
+
 });
