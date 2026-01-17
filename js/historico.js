@@ -2,28 +2,58 @@ document.addEventListener('DOMContentLoaded', () => {
   const lista = document.getElementById('lista');
   const vazio = document.getElementById('vazio');
 
+  const btnVoltar = document.getElementById('btnVoltar');
+  const btnTema = document.getElementById('btnTema');
+  const btnLimparTudo = document.getElementById('btnLimparTudo');
+
   const HISTORY_KEY = 'financeHistory';
   const EDIT_KEY = 'mesParaEdicao';
+  const THEME_KEY = 'theme';
 
-  const mesesNome = [
+  const meses = [
     'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
     'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
   ];
 
-  const brl = n =>
-    (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const brl = v =>
+    (v || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 
-  function formatarMes(m) {
-    // m = "YYYY-MM"
-    const [ano, mes] = m.split('-');
-    return `${mesesNome[Number(mes) - 1]} de ${ano}`;
+  const formatarMes = m => {
+    const [a, mm] = m.split('-');
+    return `${meses[Number(mm)-1]} de ${a}`;
+  };
+
+  // ---------- TEMA ----------
+  if (localStorage.getItem(THEME_KEY) === 'dark') {
+    document.body.classList.add('dark');
   }
 
-  function carregarHistorico() {
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
-    const meses = Object.keys(hist);
+  btnTema.onclick = () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem(
+      THEME_KEY,
+      document.body.classList.contains('dark') ? 'dark' : 'light'
+    );
+  };
 
-    if (meses.length === 0) {
+  // ---------- VOLTAR ----------
+  btnVoltar.onclick = () => {
+    location.href = 'index.html';
+  };
+
+  // ---------- LIMPAR ----------
+  btnLimparTudo.onclick = () => {
+    if (!confirm('Deseja apagar TODO o histórico?')) return;
+    localStorage.removeItem(HISTORY_KEY);
+    carregar();
+  };
+
+  // ---------- HISTÓRICO ----------
+  function carregar() {
+    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
+    const mesesSalvos = Object.keys(hist);
+
+    if (mesesSalvos.length === 0) {
       lista.innerHTML = '';
       vazio.style.display = 'block';
       return;
@@ -31,24 +61,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     vazio.style.display = 'none';
 
-    lista.innerHTML = meses.map(m => {
+    lista.innerHTML = mesesSalvos.map(m => {
       const d = hist[m];
-      const totalR = (d.receitas || []).reduce((a, r) => a + r.valor, 0);
-      const totalD = (d.despesas || []).reduce((a, d) => a + d.valor, 0);
+      const r = (d.receitas||[]).reduce((a,x)=>a+x.valor,0);
+      const dp = (d.despesas||[]).reduce((a,x)=>a+x.valor,0);
 
       return `
         <div class="card">
           <h2>${formatarMes(m)}</h2>
 
-          <div style="display:flex; gap:8px; margin-bottom:10px">
-            <button class="edit-btn" data-mes="${m}">✏️ Editar mês</button>
-            <button class="danger-btn btnExcluirMes" data-mes="${m}">🗑️ Excluir</button>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button class="edit" data-mes="${m}">✏️ Editar</button>
+            <button class="danger" data-del="${m}">🗑️ Excluir</button>
           </div>
 
           <div class="summary">
-            <div><strong>Entradas</strong><br>${brl(totalR)}</div>
-            <div><strong>Despesas</strong><br>${brl(totalD)}</div>
-            <div><strong>Saldo</strong><br>${brl(totalR - totalD)}</div>
+            <div><strong>Entradas</strong><br>${brl(r)}</div>
+            <div><strong>Despesas</strong><br>${brl(dp)}</div>
+            <div><strong>Saldo</strong><br>${brl(r-dp)}</div>
             <div><strong>Guardado</strong><br>${brl(d.guardado)}</div>
           </div>
         </div>
@@ -56,25 +86,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
-  lista.addEventListener('click', e => {
-    const edit = e.target.closest('.edit-btn');
+  // ---------- AÇÕES ----------
+  lista.onclick = e => {
+    const edit = e.target.closest('.edit');
     if (edit) {
       localStorage.setItem(EDIT_KEY, edit.dataset.mes);
       location.href = 'index.html';
       return;
     }
 
-    const del = e.target.closest('.btnExcluirMes');
+    const del = e.target.closest('[data-del]');
     if (!del) return;
 
-    const mes = del.dataset.mes;
-    if (!confirm(`Excluir ${formatarMes(mes)}?`)) return;
-
     const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
-    delete hist[mes];
+    delete hist[del.dataset.del];
     localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
-    carregarHistorico();
-  });
+    carregar();
+  };
 
-  carregarHistorico();
+  carregar();
 });
