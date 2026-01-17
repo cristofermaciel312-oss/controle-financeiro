@@ -1,108 +1,165 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const lista = document.getElementById('lista');
-  const vazio = document.getElementById('vazio');
 
-  const btnVoltar = document.getElementById('btnVoltar');
-  const btnTema = document.getElementById('btnTema');
-  const btnLimparTudo = document.getElementById('btnLimparTudo');
+  const lista = document.getElementById('lista');
+  const tabelaMes = document.getElementById('tabelaMes');
+  const tabelaGeral = document.getElementById('tabelaGeral');
+  const modo = document.getElementById('modoVisualizacao');
 
   const HISTORY_KEY = 'financeHistory';
-  const EDIT_KEY = 'mesParaEdicao';
-  const THEME_KEY = 'theme';
 
-  const meses = [
-    'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
-  ];
+  const brl = v => (v || 0).toLocaleString('pt-BR', {
+    style: 'currency', currency: 'BRL'
+  });
 
-  const brl = v =>
-    (v || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-
-  const formatarMes = m => {
-    const [a, mm] = m.split('-');
-    return `${meses[Number(mm)-1]} de ${a}`;
+  const mesPT = m => {
+    const [ano, mes] = m.split('-');
+    return new Date(ano, mes - 1).toLocaleString('pt-BR', {
+      month: 'long',
+      year: 'numeric'
+    });
   };
 
-  // ---------- TEMA ----------
-  if (localStorage.getItem(THEME_KEY) === 'dark') {
-    document.body.classList.add('dark');
+  function getData() {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
   }
 
-  btnTema.onclick = () => {
-    document.body.classList.toggle('dark');
-    localStorage.setItem(
-      THEME_KEY,
-      document.body.classList.contains('dark') ? 'dark' : 'light'
-    );
-  };
-
-  // ---------- VOLTAR ----------
-  btnVoltar.onclick = () => {
-    location.href = 'index.html';
-  };
-
-  // ---------- LIMPAR ----------
-  btnLimparTudo.onclick = () => {
-    if (!confirm('Deseja apagar TODO o histórico?')) return;
-    localStorage.removeItem(HISTORY_KEY);
-    carregar();
-  };
-
-  // ---------- HISTÓRICO ----------
-  function carregar() {
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
-    const mesesSalvos = Object.keys(hist);
-
-    if (mesesSalvos.length === 0) {
-      lista.innerHTML = '';
-      vazio.style.display = 'block';
-      return;
-    }
-
-    vazio.style.display = 'none';
-
-    lista.innerHTML = mesesSalvos.map(m => {
+  function renderCards() {
+    const hist = getData();
+    lista.innerHTML = Object.keys(hist).map(m => {
       const d = hist[m];
-      const r = (d.receitas||[]).reduce((a,x)=>a+x.valor,0);
-      const dp = (d.despesas||[]).reduce((a,x)=>a+x.valor,0);
-
+      const totalR = d.receitas.reduce((a,r)=>a+Number(r.valor),0);
+      const totalD = d.despesas.reduce((a,r)=>a+Number(r.valor),0);
       return `
         <div class="card">
-          <h2>${formatarMes(m)}</h2>
-
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <button class="edit" data-mes="${m}">✏️ Editar</button>
-            <button class="danger" data-del="${m}">🗑️ Excluir</button>
-          </div>
-
-          <div class="summary">
-            <div><strong>Entradas</strong><br>${brl(r)}</div>
-            <div><strong>Despesas</strong><br>${brl(dp)}</div>
-            <div><strong>Saldo</strong><br>${brl(r-dp)}</div>
-            <div><strong>Guardado</strong><br>${brl(d.guardado)}</div>
-          </div>
+          <h3>${mesPT(m)}</h3>
+          <p>Entradas: ${brl(totalR)}</p>
+          <p>Despesas: ${brl(totalD)}</p>
+          <p>Saldo: ${brl(totalR-totalD)}</p>
+          <p>Guardado: ${brl(d.guardado)}</p>
         </div>
       `;
     }).join('');
   }
 
-  // ---------- AÇÕES ----------
-  lista.onclick = e => {
-    const edit = e.target.closest('.edit');
-    if (edit) {
-      localStorage.setItem(EDIT_KEY, edit.dataset.mes);
-      location.href = 'index.html';
-      return;
+  function renderTabelaMes() {
+    const hist = getData();
+    tabelaMes.innerHTML = `
+      <h3>Resumo mensal</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Mês</th>
+            <th>Entradas</th>
+            <th>Despesas</th>
+            <th>Saldo</th>
+            <th>Guardado</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${Object.keys(hist).map(m=>{
+            const d = hist[m];
+            const r = d.receitas.reduce((a,x)=>a+Number(x.valor),0);
+            const e = d.despesas.reduce((a,x)=>a+Number(x.valor),0);
+            return `
+              <tr>
+                <td>${mesPT(m)}</td>
+                <td>${brl(r)}</td>
+                <td>${brl(e)}</td>
+                <td>${brl(r-e)}</td>
+                <td>${brl(d.guardado)}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderTabelaGeral() {
+    const hist = getData();
+    let linhas = '';
+
+    Object.keys(hist).forEach(m => {
+      hist[m].receitas.forEach(r => {
+        linhas += `
+          <tr>
+            <td>${mesPT(m)}</td>
+            <td>Entrada</td>
+            <td>${r.fonte}</td>
+            <td>${brl(r.valor)}</td>
+          </tr>
+        `;
+      });
+
+      hist[m].despesas.forEach(d => {
+        linhas += `
+          <tr>
+            <td>${mesPT(m)}</td>
+            <td>Despesa</td>
+            <td>${d.categoria}</td>
+            <td>${brl(d.valor)}</td>
+          </tr>
+        `;
+      });
+    });
+
+    tabelaGeral.innerHTML = `
+      <h3>Extrato geral</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Mês</th>
+            <th>Tipo</th>
+            <th>Descrição</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+      </table>
+    `;
+  }
+
+  function atualizar() {
+    lista.classList.add('hidden');
+    tabelaMes.classList.add('hidden');
+    tabelaGeral.classList.add('hidden');
+
+    if (modo.value === 'cards') {
+      lista.classList.remove('hidden');
+      renderCards();
     }
 
-    const del = e.target.closest('[data-del]');
-    if (!del) return;
+    if (modo.value === 'tabela-mes') {
+      tabelaMes.classList.remove('hidden');
+      renderTabelaMes();
+    }
 
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
-    delete hist[del.dataset.del];
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
-    carregar();
+    if (modo.value === 'tabela-geral') {
+      tabelaGeral.classList.remove('hidden');
+      renderTabelaGeral();
+    }
+  }
+
+  modo.addEventListener('change', atualizar);
+
+  document.getElementById('btnVoltar').onclick = () => location.href = 'index.html';
+  document.getElementById('btnLimparTudo').onclick = () => {
+    if (confirm('Apagar todo o histórico?')) {
+      localStorage.removeItem(HISTORY_KEY);
+      atualizar();
+    }
   };
 
-  carregar();
+  document.getElementById('toggleTheme').onclick = () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('theme',
+      document.body.classList.contains('dark') ? 'dark' : 'light'
+    );
+  };
+
+  if (localStorage.getItem('theme') === 'dark') {
+    document.body.classList.add('dark');
+  }
+
+  atualizar();
 });
