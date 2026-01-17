@@ -11,17 +11,6 @@
       --primary:#4CAF50; --primary-hover:#45a049;
       --card:#ffffff; --border:#e5e5e5;
     }
-    .link-btn {
-  background: #fff;
-  color: var(--primary);
-  border: 2px solid var(--primary);
-  margin-left: 8px;
-}
-
-.link-btn:hover {
-  background: var(--primary);
-  color: #fff;
-}
     body { margin:0; font-family:system-ui,-apple-system,'Inter',Arial,sans-serif; background:var(--bg); color:var(--text); }
     header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; background:var(--primary); color:#fff; }
     header h1 { margin:0; font-size:1.3rem; }
@@ -63,9 +52,103 @@
   © 2026 – Planilha Financeira Inteligente | Uso pessoal
 </footer>
 
-<script src="historico.js"></script>
+<script>
+const lista = document.getElementById('lista');
+const vazio = document.getElementById('vazio');
 
+const brl = n => (n || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const dataPT = v => v ? new Date(v+'T00:00:00').toLocaleDateString('pt-BR') : '';
+
+function carregarHistorico(){
+  const raw = localStorage.getItem('financeHistory');
+  const hist = raw ? JSON.parse(raw) : {};
+  const meses = Object.keys(hist);
+
+  if(meses.length === 0){
+    lista.innerHTML = '';
+    vazio.style.display = 'block';
+    return;
+  }
+
+  vazio.style.display = 'none';
+
+  meses.sort((a,b)=>{
+    const sa = hist[a].salvoEm ? new Date(hist[a].salvoEm).getTime() : 0;
+    const sb = hist[b].salvoEm ? new Date(hist[b].salvoEm).getTime() : 0;
+    return sb - sa;
+  });
+
+  lista.innerHTML = meses.map(m=>{
+    const d = hist[m];
+    const totalR = (d.receitas||[]).reduce((a,r)=>a+Number(r.valor||0),0);
+    const totalD = (d.despesas||[]).reduce((a,r)=>a+Number(r.valor||0),0);
+    const saldo = totalR-totalD;
+
+    return `
+      <div class="card">
+        <h2>${m}</h2>
+        <button class="danger-btn btnExcluirMes" data-mes="${m}">🗑️ Excluir mês</button>
+        <div class="summary">
+          <div><strong>Entradas</strong><br>${brl(totalR)}</div>
+          <div><strong>Despesas</strong><br>${brl(totalD)}</div>
+          <div><strong>Saldo</strong><br>${brl(saldo)}</div>
+          <div><strong>Guardado</strong><br>${brl(d.guardado)}</div>
+        </div>
+
+        <h3>Entradas</h3>
+        <table>
+          <thead><tr><th>Valor</th><th>Fonte</th><th>Data</th></tr></thead>
+          <tbody>
+            ${(d.receitas||[]).map(r=>`
+              <tr><td>${brl(r.valor)}</td><td>${r.fonte}</td><td>${dataPT(r.data)}</td></tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <h3 style="margin-top:12px">Despesas</h3>
+        <table>
+          <thead><tr><th>Valor</th><th>Categoria</th><th>Descrição</th><th>Data</th></tr></thead>
+          <tbody>
+            ${(d.despesas||[]).map(r=>`
+              <tr><td>${brl(r.valor)}</td><td>${r.categoria}</td><td>${r.descricao||'-'}</td><td>${dataPT(r.data)}</td></tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }).join('');
+}
+
+// Excluir mês
+lista.addEventListener('click',e=>{
+  const btn = e.target.closest('.btnExcluirMes');
+  if(!btn) return;
+  const mes = btn.dataset.mes;
+  if(!confirm(`Excluir o mês "${mes}"?`)) return;
+  const hist = JSON.parse(localStorage.getItem('financeHistory')) || {};
+  delete hist[mes];
+  localStorage.setItem('financeHistory',JSON.stringify(hist));
+  carregarHistorico();
+});
+
+// Limpar tudo
+document.getElementById('btnLimparTudo').onclick=()=>{
+  if(!confirm('Isso apagará TODO o histórico. Deseja continuar?')) return;
+  localStorage.removeItem('financeHistory');
+  carregarHistorico();
+};
+
+// Voltar
+document.getElementById('btnVoltar').onclick=()=>location.href='index.html';
+
+// Tema
+const savedTheme = localStorage.getItem('theme');
+if(savedTheme==='dark') document.body.classList.add('dark');
+document.getElementById('toggleTheme').onclick=()=>{
+  document.body.classList.toggle('dark');
+  localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');
+};
+
+carregarHistorico();
+</script>
 </body>
-
 </html>
-
