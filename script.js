@@ -1,86 +1,91 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const tipoVisualizacao = document.getElementById('tipoVisualizacao');
-  const areaTabela = document.getElementById('areaTabela');
-  const areaGrafico = document.getElementById('areaGrafico');
-  const ctx = document.getElementById('grafico').getContext('2d');
-
-  let graficoAtual = null;
-
+  const $ = id => document.getElementById(id);
   const HISTORY_KEY = 'financeHistory';
 
-  function getMesAtual() {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    if (!raw) return null;
-    const hist = JSON.parse(raw);
-    const meses = Object.keys(hist);
-    return meses.length ? hist[meses[meses.length - 1]] : null;
-  }
+  let receitas = [];
+  let despesas = [];
+  let grafico = null;
 
-  function renderGraficoPizza(despesas) {
-    const categorias = {};
-    despesas.forEach(d => {
-      categorias[d.categoria] = (categorias[d.categoria] || 0) + d.valor;
+  // Tema
+  if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+  $('toggleTheme').onclick = () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+  };
+
+  $('btnHistorico').onclick = () => location.href = 'historico.html';
+
+  $('btnAddReceita').onclick = () => {
+    receitas.push({
+      valor: +$('valorReceita').value,
+      fonte: $('fonteReceita').value,
+      data: $('dataReceita').value
     });
+    render();
+  };
 
-    return new Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: Object.keys(categorias),
-        datasets: [{
-          data: Object.values(categorias)
-        }]
-      }
+  $('btnAddDespesa').onclick = () => {
+    despesas.push({
+      valor: +$('valorDespesa').value,
+      categoria: $('categoriaDespesa').value,
+      descricao: $('descricaoDespesa').value,
+      data: $('dataDespesa').value
     });
-  }
+    render();
+  };
 
-  function renderGraficoBarras(receitas, despesas) {
-    const totalR = receitas.reduce((a, r) => a + r.valor, 0);
-    const totalD = despesas.reduce((a, d) => a + d.valor, 0);
+  $('btnSalvarMes').onclick = () => {
+    const mes = $('mesSelecionado').value;
+    if (!mes) return alert('Selecione o mês');
 
-    return new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Entradas', 'Despesas'],
-        datasets: [{
-          data: [totalR, totalD]
-        }]
-      }
-    });
-  }
+    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
+    hist[mes] = {
+      receitas,
+      despesas,
+      guardado: +$('dinheiroGuardado').value,
+      salvoEm: new Date().toISOString()
+    };
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+    alert('Mês salvo!');
+    receitas = [];
+    despesas = [];
+    render();
+  };
 
-  function atualizarVisualizacao() {
-    const mes = getMesAtual();
-    if (!mes) return;
+  $('tipoVisualizacao').onchange = render;
 
-    if (graficoAtual) {
-      graficoAtual.destroy();
-      graficoAtual = null;
-    }
+  function render() {
+    $('tabelaReceitas').querySelector('tbody').innerHTML =
+      receitas.map(r => `<tr><td>${r.valor}</td><td>${r.fonte}</td><td>${r.data}</td></tr>`).join('');
 
-    const tipo = tipoVisualizacao.value;
+    $('tabelaDespesas').querySelector('tbody').innerHTML =
+      despesas.map(d => `<tr><td>${d.valor}</td><td>${d.categoria}</td><td>${d.descricao}</td><td>${d.data}</td></tr>`).join('');
 
-    if (tipo === 'tabela') {
-      areaTabela.style.display = 'block';
-      areaGrafico.style.display = 'none';
+    if (grafico) grafico.destroy();
+
+    if ($('tipoVisualizacao').value === 'tabela') {
+      $('grafico').style.display = 'none';
       return;
     }
 
-    areaTabela.style.display = 'none';
-    areaGrafico.style.display = 'block';
+    $('grafico').style.display = 'block';
 
-    if (tipo === 'pizza') {
-      graficoAtual = renderGraficoPizza(mes.despesas || []);
+    const ctx = $('grafico');
+    if ($('tipoVisualizacao').value === 'pizza') {
+      const cats = {};
+      despesas.forEach(d => cats[d.categoria] = (cats[d.categoria] || 0) + d.valor);
+      grafico = new Chart(ctx, { type:'pie', data:{ labels:Object.keys(cats), datasets:[{ data:Object.values(cats) }] }});
     }
 
-    if (tipo === 'barras') {
-      graficoAtual = renderGraficoBarras(
-        mes.receitas || [],
-        mes.despesas || []
-      );
+    if ($('tipoVisualizacao').value === 'barras') {
+      grafico = new Chart(ctx, {
+        type:'bar',
+        data:{ labels:['Entradas','Despesas'],
+        datasets:[{ data:[
+          receitas.reduce((a,r)=>a+r.valor,0),
+          despesas.reduce((a,d)=>a+d.valor,0)
+        ]}]}
+      });
     }
-  }
-
-  tipoVisualizacao.addEventListener('change', atualizarVisualizacao);
-
-  atualizarVisualizacao();
+  };
 });
