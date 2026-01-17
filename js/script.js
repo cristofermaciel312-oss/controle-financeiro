@@ -1,112 +1,202 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const $ = id => document.getElementById(id);
+  // ====== CONSTANTES ======
+  const HISTORY_KEY = 'financeHistory';
+  const EDIT_KEY = 'mesParaEdicao';
 
-  const receitas = [];
-  const despesas = [];
+  // ====== ELEMENTOS ======
+  const mesSelecionado = document.getElementById('mesSelecionado');
+  const dinheiroGuardado = document.getElementById('dinheiroGuardado');
 
-  const ctx = $('grafico').getContext('2d');
-  let chart = null;
+  const valorReceita = document.getElementById('valorReceita');
+  const fonteReceita = document.getElementById('fonteReceita');
+  const dataReceita = document.getElementById('dataReceita');
+  const btnAddReceita = document.getElementById('btnAddReceita');
 
-  const brl = v => (v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const valorDespesa = document.getElementById('valorDespesa');
+  const categoriaDespesa = document.getElementById('categoriaDespesa');
+  const descricaoDespesa = document.getElementById('descricaoDespesa');
+  const dataDespesa = document.getElementById('dataDespesa');
+  const btnAddDespesa = document.getElementById('btnAddDespesa');
 
-  // Tema
-  if(localStorage.getItem('theme')==='dark') document.body.classList.add('dark');
-  $('toggleTheme').onclick=()=>{
-    document.body.classList.toggle('dark');
-    localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');
-  };
+  const tabelaReceitas = document.querySelector('#tabelaReceitas tbody');
+  const tabelaDespesas = document.querySelector('#tabelaDespesas tbody');
 
-  // Mês automático
-  const hoje = new Date();
-  $('mesSelecionado').value =
-    `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+  const totalReceitasEl = document.getElementById('totalReceitas');
+  const totalDespesasEl = document.getElementById('totalDespesas');
+  const saldoRestanteEl = document.getElementById('saldoRestante');
+  const saldoGuardadoEl = document.getElementById('saldoGuardado');
 
-  function renderTabelas(){
-    $('tbodyReceitas').innerHTML = receitas.map(r =>
-      `<tr><td>${brl(r.valor)}</td><td>${r.fonte}</td><td>${r.data}</td></tr>`
-    ).join('');
+  const btnSalvarMes = document.getElementById('btnSalvarMes');
+  const btnHistorico = document.getElementById('btnHistorico');
+  const btnLimparAtual = document.getElementById('btnLimparAtual');
+  const toggleTheme = document.getElementById('toggleTheme');
 
-    $('tbodyDespesas').innerHTML = despesas.map(d =>
-      `<tr><td>${brl(d.valor)}</td><td>${d.categoria}</td><td>${d.descricao||'-'}</td><td>${d.data}</td></tr>`
-    ).join('');
-    
-    // -------- EDITAR MÊS --------
-const EDIT_KEY = 'mesParaEdicao';
-const editMes = localStorage.getItem(EDIT_KEY);
+  // ====== ESTADO ======
+  let receitas = [];
+  let despesas = [];
+  let modoEdicao = false;
 
-if (editMes) {
-  const hist = JSON.parse(localStorage.getItem('financeHistory')) || {};
-  const dados = hist[editMes];
+  // ====== UTIL ======
+  const brl = n =>
+    (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-  if (dados) {
-    document.getElementById('mesSelecionado').value = editMes;
-    document.getElementById('dinheiroGuardado').value = dados.guardado || 0;
+  const dataPT = v =>
+    v ? new Date(v + 'T00:00:00').toLocaleDateString('pt-BR') : '';
 
-    receitas = dados.receitas || [];
-    despesas = dados.despesas || [];
-
-    renderTabelas();
-  }
-}
-  localStorage.removeItem(EDIT_KEY);
-  }
-
-  function renderGrafico(){
-    if(chart) chart.destroy();
-    const tipo = $('tipoGrafico').value;
-    if(tipo==='nenhum') return;
-
-    if(tipo==='pizza'){
-      chart = new Chart(ctx,{
-        type:'pie',
-        data:{
-          labels:despesas.map(d=>d.categoria),
-          datasets:[{data:despesas.map(d=>d.valor)}]
-        }
-      });
-    }
-
-    if(tipo==='barra'){
-      const totalR = receitas.reduce((a,b)=>a+b.valor,0);
-      const totalD = despesas.reduce((a,b)=>a+b.valor,0);
-      chart = new Chart(ctx,{
-        type:'bar',
-        data:{
-          labels:['Entradas','Despesas'],
-          datasets:[{data:[totalR,totalD]}]
-        }
-      });
-    }
+  // ====== RENDER ======
+  function renderReceitas() {
+    tabelaReceitas.innerHTML = receitas.map((r, i) => `
+      <tr>
+        <td>${brl(r.valor)}</td>
+        <td>${r.fonte}</td>
+        <td>${dataPT(r.data)}</td>
+        <td><button data-i="${i}" class="rem-receita">🗑️</button></td>
+      </tr>
+    `).join('');
   }
 
-  $('btnAddReceita').onclick=()=>{
+  function renderDespesas() {
+    tabelaDespesas.innerHTML = despesas.map((d, i) => `
+      <tr>
+        <td>${brl(d.valor)}</td>
+        <td>${d.categoria}</td>
+        <td>${d.descricao || '-'}</td>
+        <td>${dataPT(d.data)}</td>
+        <td><button data-i="${i}" class="rem-despesa">🗑️</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function renderResumo() {
+    const totalR = receitas.reduce((a, r) => a + r.valor, 0);
+    const totalD = despesas.reduce((a, d) => a + d.valor, 0);
+    const guardado = Number(dinheiroGuardado.value) || 0;
+
+    totalReceitasEl.textContent = brl(totalR);
+    totalDespesasEl.textContent = brl(totalD);
+    saldoRestanteEl.textContent = brl(totalR - totalD);
+    saldoGuardadoEl.textContent = brl(guardado);
+  }
+
+  function renderTudo() {
+    renderReceitas();
+    renderDespesas();
+    renderResumo();
+  }
+
+  // ====== AÇÕES ======
+  btnAddReceita.onclick = () => {
+    const valor = Number(valorReceita.value);
+    if (!valor || !fonteReceita.value || !dataReceita.value) return;
+
     receitas.push({
-      valor:+$('valorReceita').value,
-      fonte:$('fonteReceita').value,
-      data:$('dataReceita').value
+      valor,
+      fonte: fonteReceita.value,
+      data: dataReceita.value,
     });
-    renderTabelas(); renderGrafico();
+
+    valorReceita.value = fonteReceita.value = dataReceita.value = '';
+    renderTudo();
   };
 
-  $('btnAddDespesa').onclick=()=>{
+  btnAddDespesa.onclick = () => {
+    const valor = Number(valorDespesa.value);
+    if (!valor || !categoriaDespesa.value || !dataDespesa.value) return;
+
     despesas.push({
-      valor:+$('valorDespesa').value,
-      categoria:$('categoriaDespesa').value,
-      descricao:$('descricaoDespesa').value,
-      data:$('dataDespesa').value
+      valor,
+      categoria: categoriaDespesa.value,
+      descricao: descricaoDespesa.value,
+      data: dataDespesa.value,
     });
-    renderTabelas(); renderGrafico();
+
+    valorDespesa.value = categoriaDespesa.value =
+      descricaoDespesa.value = dataDespesa.value = '';
+    renderTudo();
   };
 
-  $('tipoGrafico').onchange=renderGrafico;
-
-  $('btnSalvarMes').onclick=()=>{
-    const key = $('mesSelecionado').value;
-    const hist = JSON.parse(localStorage.getItem('financeHistory')||'{}');
-    hist[key] = { receitas, despesas, guardado:+$('dinheiroGuardado').value };
-    localStorage.setItem('financeHistory',JSON.stringify(hist));
-    location.href='historico.html';
+  tabelaReceitas.onclick = e => {
+    const btn = e.target.closest('.rem-receita');
+    if (!btn) return;
+    receitas.splice(btn.dataset.i, 1);
+    renderTudo();
   };
 
-  $('btnHistorico').onclick=()=>location.href='historico.html';
+  tabelaDespesas.onclick = e => {
+    const btn = e.target.closest('.rem-despesa');
+    if (!btn) return;
+    despesas.splice(btn.dataset.i, 1);
+    renderTudo();
+  };
+
+  // ====== SALVAR ======
+  btnSalvarMes.onclick = () => {
+    if (!mesSelecionado.value) {
+      alert('Selecione um mês');
+      return;
+    }
+
+    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
+
+    hist[mesSelecionado.value] = {
+      receitas,
+      despesas,
+      guardado: Number(dinheiroGuardado.value) || 0,
+      salvoEm: new Date().toISOString(),
+    };
+
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+    location.href = 'historico.html';
+  };
+
+  // ====== LIMPAR ======
+  btnLimparAtual.onclick = () => {
+    if (!confirm('Limpar dados do mês atual?')) return;
+    receitas = [];
+    despesas = [];
+    dinheiroGuardado.value = '';
+    renderTudo();
+  };
+
+  // ====== EDITAR MÊS ======
+  const mesEditar = localStorage.getItem(EDIT_KEY);
+  if (mesEditar) {
+    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
+    const dados = hist[mesEditar];
+
+    if (dados) {
+      mesSelecionado.value = mesEditar;
+      dinheiroGuardado.value = dados.guardado || 0;
+      receitas = dados.receitas || [];
+      despesas = dados.despesas || [];
+      modoEdicao = true;
+      renderTudo();
+    }
+
+    localStorage.removeItem(EDIT_KEY);
+  }
+
+  // ====== NAVEGAÇÃO ======
+  btnHistorico.onclick = () => location.href = 'historico.html';
+
+  // ====== TEMA ======
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') document.body.classList.add('dark');
+
+  toggleTheme.onclick = () => {
+    document.body.classList.toggle('dark');
+    localStorage.setItem(
+      'theme',
+      document.body.classList.contains('dark') ? 'dark' : 'light'
+    );
+  };
+
+  dinheiroGuardado.oninput = renderResumo;
+
+  // ====== INIT ======
+  const hoje = new Date();
+  mesSelecionado.value =
+    hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+
+  renderTudo();
 });
