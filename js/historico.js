@@ -5,11 +5,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const HISTORY_KEY = 'financeHistory';
   const EDIT_KEY = 'mesParaEdicao';
 
+  const mesesNome = [
+    'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'
+  ];
+
   const brl = n =>
-    (n || 0).toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
+    (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  function formatarMes(m) {
+    // m = "YYYY-MM"
+    const [ano, mes] = m.split('-');
+    return `${mesesNome[Number(mes) - 1]} de ${ano}`;
+  }
 
   function carregarHistorico() {
     const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
@@ -30,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       return `
         <div class="card">
-          <h2>${m}</h2>
+          <h2>${formatarMes(m)}</h2>
 
           <div style="display:flex; gap:8px; margin-bottom:10px">
             <button class="edit-btn" data-mes="${m}">✏️ Editar mês</button>
@@ -48,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('');
   }
 
-  // AÇÕES
   lista.addEventListener('click', e => {
     const edit = e.target.closest('.edit-btn');
     if (edit) {
@@ -61,33 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!del) return;
 
     const mes = del.dataset.mes;
-    if (!confirm(`Excluir "${mes}"?`)) return;
+    if (!confirm(`Excluir ${formatarMes(mes)}?`)) return;
 
     const hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {};
     delete hist[mes];
     localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
     carregarHistorico();
   });
-
-  // BOTÕES SUPERIORES
-  document.getElementById('btnVoltar').onclick = () => location.href = 'index.html';
-
-  document.getElementById('btnLimparTudo').onclick = () => {
-    if (!confirm('Apagar TODO o histórico?')) return;
-    localStorage.removeItem(HISTORY_KEY);
-    carregarHistorico();
-  };
-
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'dark') document.body.classList.add('dark');
-
-  document.getElementById('toggleTheme').onclick = () => {
-    document.body.classList.toggle('dark');
-    localStorage.setItem(
-      'theme',
-      document.body.classList.contains('dark') ? 'dark' : 'light'
-    );
-  };
 
   carregarHistorico();
 });
