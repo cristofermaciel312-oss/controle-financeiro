@@ -1,154 +1,38 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Histórico Financeiro</title>
-  <style>
-    * { box-sizing: border-box; }
-    :root {
-      --bg:#f9f9f9; --text:#222; --muted:#666;
-      --primary:#4CAF50; --primary-hover:#45a049;
-      --card:#ffffff; --border:#e5e5e5;
-    }
-    body { margin:0; font-family:system-ui,-apple-system,'Inter',Arial,sans-serif; background:var(--bg); color:var(--text); }
-    header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; background:var(--primary); color:#fff; }
-    header h1 { margin:0; font-size:1.3rem; }
-    .toolbar { display:flex; gap:10px; }
-    button { padding:8px 12px; border:none; border-radius:8px; font-weight:600; cursor:pointer; }
-    button:hover { opacity:.9; }
-    .link-btn { background:#fff; color:var(--primary); border:2px solid var(--primary); }
-    .danger-btn { background:#fff; color:#c62828; border:2px solid #c62828; }
-    .danger-btn:hover { background:#c62828; color:#fff; }
-    .container { max-width:1100px; margin:24px auto; padding:0 16px; }
-    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px; }
-    .card h2 { margin:0 0 6px; font-size:1.05rem; color:var(--muted); }
-    .summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin:10px 0; }
-    .summary div { background:#f5fff6; border:1px solid #d9f2dc; border-radius:10px; padding:10px; }
-    table { width:100%; border-collapse:collapse; margin-top:8px; }
-    th,td { border:1px solid #ddd; padding:8px; text-align:center; }
-    th { background:var(--primary); color:#fff; }
-    .empty { text-align:center; color:var(--muted); padding:24px; }
-    footer { text-align:center; font-size:.85rem; color:var(--muted); margin:24px 0; }
-    body.dark { --bg:#121212; --text:#e0e0e0; --muted:#bdbdbd; --primary:#81C784; --primary-hover:#66BB6A; --card:#1e1e1e; --border:#2a2a2a; }
-  </style>
+<meta charset="UTF-8">
+<title>Histórico Financeiro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{margin:0;font-family:system-ui;background:#f9f9f9}
+body.dark{background:#121212;color:#e0e0e0}
+header{background:#4CAF50;color:#fff;padding:15px;display:flex;justify-content:space-between}
+.container{max-width:1100px;margin:auto;padding:16px}
+.card{background:#fff;padding:16px;border-radius:12px;margin-bottom:16px}
+body.dark .card{background:#1e1e1e}
+button{padding:8px;border-radius:8px;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ccc;padding:8px;text-align:center}
+th{background:#4CAF50;color:#fff}
+</style>
 </head>
+
 <body>
 <header>
-  <h1>📚 Histórico Financeiro</h1>
-  <div class="toolbar">
-    <button id="btnLimparTudo" class="danger-btn">🧹 Limpar histórico</button>
-    <button id="btnVoltar" class="link-btn">Voltar</button>
-    <button id="toggleTheme">Tema</button>
+  <strong>Histórico</strong>
+  <div>
+    <button id="btnLimparTudo">🧹 Limpar</button>
+    <button id="btnVoltar">⬅ Voltar</button>
+    <button id="toggleTheme">🌙 Tema</button>
   </div>
 </header>
 
 <div class="container">
   <div id="lista"></div>
-  <div id="vazio" class="empty" style="display:none">Nenhum mês salvo.</div>
+  <div id="vazio" style="display:none">Nenhum mês salvo.</div>
 </div>
 
-<footer>
-  © 2026 – Planilha Financeira Inteligente | Uso pessoal
-</footer>
-
-<script>
-const lista = document.getElementById('lista');
-const vazio = document.getElementById('vazio');
-
-const brl = n => (n || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const dataPT = v => v ? new Date(v+'T00:00:00').toLocaleDateString('pt-BR') : '';
-
-function carregarHistorico(){
-  const raw = localStorage.getItem('financeHistory');
-  const hist = raw ? JSON.parse(raw) : {};
-  const meses = Object.keys(hist);
-
-  if(meses.length === 0){
-    lista.innerHTML = '';
-    vazio.style.display = 'block';
-    return;
-  }
-
-  vazio.style.display = 'none';
-
-  meses.sort((a,b)=>{
-    const sa = hist[a].salvoEm ? new Date(hist[a].salvoEm).getTime() : 0;
-    const sb = hist[b].salvoEm ? new Date(hist[b].salvoEm).getTime() : 0;
-    return sb - sa;
-  });
-
-  lista.innerHTML = meses.map(m=>{
-    const d = hist[m];
-    const totalR = (d.receitas||[]).reduce((a,r)=>a+Number(r.valor||0),0);
-    const totalD = (d.despesas||[]).reduce((a,r)=>a+Number(r.valor||0),0);
-    const saldo = totalR-totalD;
-
-    return `
-      <div class="card">
-        <h2>${m}</h2>
-        <button class="danger-btn btnExcluirMes" data-mes="${m}">🗑️ Excluir mês</button>
-        <div class="summary">
-          <div><strong>Entradas</strong><br>${brl(totalR)}</div>
-          <div><strong>Despesas</strong><br>${brl(totalD)}</div>
-          <div><strong>Saldo</strong><br>${brl(saldo)}</div>
-          <div><strong>Guardado</strong><br>${brl(d.guardado)}</div>
-        </div>
-
-        <h3>Entradas</h3>
-        <table>
-          <thead><tr><th>Valor</th><th>Fonte</th><th>Data</th></tr></thead>
-          <tbody>
-            ${(d.receitas||[]).map(r=>`
-              <tr><td>${brl(r.valor)}</td><td>${r.fonte}</td><td>${dataPT(r.data)}</td></tr>
-            `).join('')}
-          </tbody>
-        </table>
-
-        <h3 style="margin-top:12px">Despesas</h3>
-        <table>
-          <thead><tr><th>Valor</th><th>Categoria</th><th>Descrição</th><th>Data</th></tr></thead>
-          <tbody>
-            ${(d.despesas||[]).map(r=>`
-              <tr><td>${brl(r.valor)}</td><td>${r.categoria}</td><td>${r.descricao||'-'}</td><td>${dataPT(r.data)}</td></tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  }).join('');
-}
-
-// Excluir mês
-lista.addEventListener('click',e=>{
-  const btn = e.target.closest('.btnExcluirMes');
-  if(!btn) return;
-  const mes = btn.dataset.mes;
-  if(!confirm(`Excluir o mês "${mes}"?`)) return;
-  const hist = JSON.parse(localStorage.getItem('financeHistory')) || {};
-  delete hist[mes];
-  localStorage.setItem('financeHistory',JSON.stringify(hist));
-  carregarHistorico();
-});
-
-// Limpar tudo
-document.getElementById('btnLimparTudo').onclick=()=>{
-  if(!confirm('Isso apagará TODO o histórico. Deseja continuar?')) return;
-  localStorage.removeItem('financeHistory');
-  carregarHistorico();
-};
-
-// Voltar
-document.getElementById('btnVoltar').onclick=()=>location.href='index.html';
-
-// Tema
-const savedTheme = localStorage.getItem('theme');
-if(savedTheme==='dark') document.body.classList.add('dark');
-document.getElementById('toggleTheme').onclick=()=>{
-  document.body.classList.toggle('dark');
-  localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');
-};
-
-carregarHistorico();
-</script>
+<script src="js/historico.js"></script>
 </body>
 </html>
