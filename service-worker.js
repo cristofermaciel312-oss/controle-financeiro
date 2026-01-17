@@ -1,32 +1,49 @@
-const CACHE_NAME = 'controle-gastos-v2';
-const FILES = [
-  './',
-  './index.html',
-  './historico.html',
-  './script.js',
-  './historico.js'
+const CACHE_NAME = 'controle-financeiro-v1';
+
+const FILES_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/historico.html',
+  '/manifest.json',
+  '/js/script.js',
+  '/js/historico.js'
 ];
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(FILES))
+// 🔹 INSTALAÇÃO
+self.addEventListener('install', event => {
+  self.skipWaiting(); // força instalar a nova versão
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(FILES_TO_CACHE);
+    })
   );
-  self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.map(k => k !== CACHE_NAME && caches.delete(k))
-      )
-    )
+// 🔹 ATIVAÇÃO
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      );
+    }).then(() => self.clients.claim()) // força usar a versão nova
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
+// 🔹 FETCH
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        // Atualiza o cache com a versão mais recente
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, clone);
+        });
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
