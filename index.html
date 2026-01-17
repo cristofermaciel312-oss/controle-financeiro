@@ -210,8 +210,52 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+<script>
+let deferredPrompt;
+
+// ANDROID / DESKTOP
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  if (!window.matchMedia('(display-mode: standalone)').matches) {
+    mostrarBannerInstalacao('📲 Instalar app para receber atualizações automáticas');
+  }
+});
+
+function mostrarBannerInstalacao(texto) {
+  const banner = document.createElement('div');
+  banner.id = 'installBanner';
+  banner.style = `
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    background:#4CAF50;
+    color:#fff;
+    padding:14px;
+    text-align:center;
+    font-weight:600;
+    z-index:9999;
+    cursor:pointer;
+  `;
+  banner.innerText = texto;
+
+  banner.onclick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+    }
+    banner.remove();
+  };
+
+  document.body.appendChild(banner);
+}
+</script>
 
 </body>
 </html>
+
 
 
